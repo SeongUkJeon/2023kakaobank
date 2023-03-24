@@ -1,0 +1,6 @@
+00:01:03.073 [pool-1-thread-5] INFO  o.apache.kafka.clients.NetworkClient - [Consumer clientId=consumer-test-5, groupId=test] Node -1 disconnected.
+00:01:03.087 [pool-1-thread-3] INFO  o.apache.kafka.clients.NetworkClient - [Consumer clientId=consumer-test-3, groupId=test] Node -1 disconnected.
+00:01:03.092 [pool-1-thread-2] INFO  o.apache.kafka.clients.NetworkClient - [Consumer clientId=consumer-test-2, groupId=test] Node -1 disconnected.
+00:01:03.094 [pool-1-thread-4] INFO  o.apache.kafka.clients.NetworkClient - [Consumer clientId=consumer-test-4, groupId=test] Node -1 disconnected.
+00:01:03.218 [pool-1-thread-1] INFO  o.apache.kafka.clients.NetworkClient - [Consumer clientId=consumer-test-1, groupId=test] Node -1 disconnected.
+00:01:03.559 [kafka-producer-network-thread | producer-1] INFO  o.apache.kafka.clients.NetworkClient - [Producer clientId=producer-1] Node -1 disconnected.

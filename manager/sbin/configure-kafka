@@ -1,0 +1,50 @@
+#!/bin/bash
+# resolve links - $0 may be a softlink
+if [ -z "$APP_HOME" ];then
+  PRG="$0"
+  while [ -h "$PRG" ] ; do
+    ls=$(ls -ld "$PRG")
+    link=$(expr "$ls" : '.*-> \(.*\)$')
+    if expr "$link" : '/.*' > /dev/null; then
+      PRG="$link"
+    else
+      PRG=$(dirname "$PRG")/"$link"
+    fi
+  done
+  cd "$(dirname "$PRG")/.." || exit 1
+  APP_HOME="$(pwd)"
+  export APP_HOME
+  cd - &>/dev/null || exit 1
+fi
+
+. "$APP_HOME"/sbin/env.sh
+
+printf "Configuring kafka..."
+for ((i=0 ; i<${#NODES[@]} ; ++i )); do
+  NODE=${NODES[$i]}
+  cat <<EOF | ssh "$USER_KAFKA"@"$NODE" cat > "$KAFKA_CONFIG"
+broker.id=$i
+listeners=PLAINTEXT://:$KAFKA_PORT
+
+num.network.threads=3
+num.io.threads=8
+socket.send.buffer.bytes=102400
+socket.receive.buffer.bytes=102400
+socket.request.max.bytes=104857600
+
+log.dirs=$KAFKA_LOG_DIR
+num.partitions=1
+num.recovery.threads.per.data.dir=1
+offsets.topic.replication.factor=1
+transaction.state.log.replication.factor=1
+transaction.state.log.min.isr=1
+log.retention.hours=168
+log.segment.bytes=1073741824
+log.retention.check.interval.ms=300000
+zookeeper.connect=localhost:$ZOOKEEPER_CLIENT_PORT
+zookeeper.connection.timeout.ms=6000
+group.initial.rebalance.delay.ms=0
+EOF
+done
+  ssh "$USER_KAFKA"@"$NODE" mkdir -p "$KAFKA_LOG_DIR"
+echo "OK"

@@ -1,0 +1,55 @@
+#!/bin/bash
+# resolve links - $0 may be a softlink
+if [ -z "$APP_HOME" ];then
+  PRG="$0"
+  while [ -h "$PRG" ] ; do
+    ls=$(ls -ld "$PRG")
+    link=$(expr "$ls" : '.*-> \(.*\)$')
+    if expr "$link" : '/.*' > /dev/null; then
+      PRG="$link"
+    else
+      PRG=$(dirname "$PRG")/"$link"
+    fi
+  done
+  cd "$(dirname "$PRG")/.." || exit 1
+  APP_HOME="$(pwd)"
+  export APP_HOME
+  cd - &>/dev/null || exit 1
+fi
+
+. "$APP_HOME"/sbin/env.sh
+
+printf "Configuring zookeeper..."
+LINES=()
+for ((i=0 ; i<${#NODES[@]} ; ++i )); do
+  LINES[$i]="server.$i=${NODES[$i]}:2888:3888"
+done
+
+for ((i=0 ; i<${#NODES[@]} ; ++i )); do
+  NODE=${NODES[$i]}
+
+  ZOOKEEPER_SERVERS=""
+  for ((j=0 ; j<${#NODES[@]} ; ++j )); do
+    if [ "$i" == "$j" ]; then
+      ZOOKEEPER_SERVERS="$ZOOKEEPER_SERVERS"$'\n'"server.$i=0.0.0.0:2888:3888"
+    else
+      ZOOKEEPER_SERVERS="$ZOOKEEPER_SERVERS"$'\n'"${LINES[$j]}"
+    fi
+  done
+  cat <<EOF | ssh "$USER_KAFKA"@"$NODE" cat > "$ZOOKEEPER_CONFIG"
+dataDir=$ZOOKEEPER_DATA_DIR
+clientPort=$ZOOKEEPER_CLIENT_PORT
+admin.enableServer=false
+
+tickTime=2000
+initLimit=10
+syncLimit=5
+
+$ZOOKEEPER_SERVERS
+EOF
+
+  ssh "$USER_KAFKA"@"$NODE" mkdir -p "$ZOOKEEPER_DATA_DIR"
+  ssh "$USER_KAFKA"@"$NODE" "echo $i > $ZOOKEEPER_DATA_DIR/myid"
+done
+
+echo "OK"

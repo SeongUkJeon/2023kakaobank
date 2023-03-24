@@ -1,0 +1,37 @@
+#!/bin/bash
+# resolve links - $0 may be a softlink
+if [ -z "$APP_HOME" ];then
+  PRG="$0"
+  while [ -h "$PRG" ] ; do
+    ls=$(ls -ld "$PRG")
+    link=$(expr "$ls" : '.*-> \(.*\)$')
+    if expr "$link" : '/.*' > /dev/null; then
+      PRG="$link"
+    else
+      PRG=$(dirname "$PRG")/"$link"
+    fi
+  done
+  cd "$(dirname "$PRG")/.." || exit 1
+  APP_HOME="$(pwd)"
+  export APP_HOME
+  cd - &>/dev/null || exit 1
+fi
+
+. "$APP_HOME"/sbin/env.sh
+"$APP_HOME"/sbin/stop-kafka
+
+printf "Copying kafka binaries..."
+PIDS=()
+for NODE in "${NODES[@]}"; do
+  ssh "$USER_KAFKA"@"$NODE" rm -rf "$KAFKA_HOME" >/dev/null
+  ssh "$USER_KAFKA"@"$NODE" mkdir -p "$KAFKA_HOME" >/dev/null
+  scp "$EXT_DIR"/"$KAFKA_TAR_FILE" "$USER_KAFKA"@"$NODE":"$KAFKA_HOME" >/dev/null &
+  PIDS+=($!)
+done
+for PID in "${PIDS[@]}"; do
+  wait "$PID"
+done
+for NODE in "${NODES[@]}"; do
+  ssh "$USER_KAFKA"@"$NODE" tar -xf "$KAFKA_HOME"/"$KAFKA_TAR_FILE" --strip-components=1 -C "$KAFKA_HOME"
+done
+echo "OK"

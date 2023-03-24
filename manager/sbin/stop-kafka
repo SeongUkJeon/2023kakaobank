@@ -1,0 +1,36 @@
+#!/bin/bash
+# resolve links - $0 may be a softlink
+if [ -z "$APP_HOME" ];then
+  PRG="$0"
+  while [ -h "$PRG" ] ; do
+    ls=$(ls -ld "$PRG")
+    link=$(expr "$ls" : '.*-> \(.*\)$')
+    if expr "$link" : '/.*' > /dev/null; then
+      PRG="$link"
+    else
+      PRG=$(dirname "$PRG")/"$link"
+    fi
+  done
+  cd "$(dirname "$PRG")/.." || exit 1
+  APP_HOME="$(pwd)"
+  export APP_HOME
+  cd - &>/dev/null || exit 1
+fi
+
+. "$APP_HOME"/sbin/env.sh
+
+printf "Stop kafka in "
+for NODE in "${NODES[@]}"; do
+  printf '%s' "$NODE "
+done
+printf "..."
+
+PIDS=()
+for NODE in "${NODES[@]}"; do
+  ssh "$USER_KAFKA"@"$NODE" "$KAFKA_HOME"/bin/kafka-server-stop.sh >/dev/null &
+  PIDS+=($!)
+done
+for PID in "${PIDS[@]}"; do
+  wait "$PID"
+done
+echo "OK"
